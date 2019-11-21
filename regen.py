@@ -8,6 +8,8 @@ import os
 import re
 from pathlib import Path
 
+from typing import Any
+
 THIS_DIR = Path(os.path.abspath(__file__)).parent
 TEMPLATE_DIR = THIS_DIR / "templates"
 
@@ -15,8 +17,23 @@ TEMPLATE_DIR = THIS_DIR / "templates"
 VARIABLE_RE = re.compile(r"(?<!{){(\w+)}")
 VARS_FILENAME = ".vars.ini"
 
+def variable_format(tmpl: str, **kwargs: Any) -> str:
+    """
+    This is similar to string.format but uses the regex above.
 
-def main():
+    This means that '{ foo }' is not an interpolation, nor is '{{foo}}', but we
+    also don't get '!r' suffix for free.  Maybe someday.
+    """
+    def replace(match: Any) -> str:
+        g = match.group(1)
+        if g in kwargs:
+            return kwargs[g]
+        return match.group(0)
+
+    return VARIABLE_RE.sub(replace, tmpl)
+
+
+def main() -> None:
     # In case we've answered anything before, attempt load.
     parser = configparser.RawConfigParser()
     parser.read([VARS_FILENAME])
@@ -37,7 +54,7 @@ def main():
                         with open(VARS_FILENAME, "w") as f:
                             parser.write(f)
 
-                interpolated_data = data.format(**parser["vars"])
+                interpolated_data = variable_format(data, **parser["vars"])
 
                 if local_path.exists():
                     with local_path.open("r") as f:
