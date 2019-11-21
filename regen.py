@@ -7,8 +7,7 @@ import configparser
 import os
 import re
 from pathlib import Path
-
-from typing import Any
+from typing import Match
 
 THIS_DIR = Path(os.path.abspath(__file__)).parent
 TEMPLATE_DIR = THIS_DIR / "templates"
@@ -17,14 +16,16 @@ TEMPLATE_DIR = THIS_DIR / "templates"
 VARIABLE_RE = re.compile(r"(?<!{){(\w+)}")
 VARS_FILENAME = ".vars.ini"
 
-def variable_format(tmpl: str, **kwargs: Any) -> str:
+
+def variable_format(tmpl: str, **kwargs: str) -> str:
     """
     This is similar to string.format but uses the regex above.
 
     This means that '{ foo }' is not an interpolation, nor is '{{foo}}', but we
     also don't get '!r' suffix for free.  Maybe someday.
     """
-    def replace(match: Any) -> str:
+
+    def replace(match: Match[str]) -> str:
         g = match.group(1)
         if g in kwargs:
             return kwargs[g]
@@ -41,10 +42,10 @@ def main() -> None:
         parser.add_section("vars")
 
     for dirpath, dirnames, filenames in os.walk(TEMPLATE_DIR):
-        for f in filenames:
-            if f.endswith(".in"):
-                template_path = Path(dirpath) / f
-                local_path = (Path(dirpath) / f[:-3]).relative_to(TEMPLATE_DIR)
+        for fn in filenames:
+            if fn.endswith(".in"):
+                template_path = Path(dirpath) / fn
+                local_path = (Path(dirpath) / fn[:-3]).relative_to(TEMPLATE_DIR)
                 with template_path.open("r") as f:
                     data = f.read()
                 variables = VARIABLE_RE.findall(data)
