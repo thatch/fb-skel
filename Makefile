@@ -1,5 +1,5 @@
 PYTHON?=python
-SOURCES=regen.py
+SOURCES=regen.py regen-git.py
 
 .PHONY: venv
 venv:
