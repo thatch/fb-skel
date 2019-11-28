@@ -4,36 +4,36 @@ Making it easier to handle python project boilerplate, and keep up-to-date with
 best practices if you have a lot of repositories and want them to all look
 similar.
 
-If you make edits after merging (for example adding a new makefile target),
-those will either be kept or shown as a conflict by git.
+It does this by using template contained in the `skel` checkout to generate
+files in a `skel` branch in your repo.  You then merge those into whatever
+branch your want, handling conflicts yourself using the normal merge tools.
+
+While we do accept pull requests, if you have drastically different needs please
+create a fork and give it a descriptive name.
 
 
 # Quick Start
 
-```
 (in existing repo)
-git checkout --orphan -b skel
-git reset --hard
-/path/to/skel/regen.py
-(answer questions)
-git commit -m "Create skel $(date +%Y%m%d)"
 
-git checkout master
-git merge --allow-unrelated-histories skel
-(handle conflicts)
+```
+/path/to/skel/regen-git.py
+# (answer questions)
+# when completed, it will create a branch for you
+Good luck, the first 'git merge --allow-unrelated-histories skel' is typically
+full of conflicts.
 ```
 
 # Updating later
 
 ```
-git checkout skel
-/path/to/skel/regen.py
-git commit -m "Update skel $(date +%Y%m%d)"
-
-git checkout master
-git merge skel
-(handle any conflicts)
+# (go update the skel repo)
+/path/to/skel/regen-git.py
+# (maybe answer questions, if new things have been added)
+# when completed, it will create a branch for you
+Completed; use 'git merge skel' to pull in changes.
 ```
+
 
 # License
 
