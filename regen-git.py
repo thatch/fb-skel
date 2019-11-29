@@ -79,7 +79,7 @@ def main():
             subprocess.check_call(["git", "push", "origin", SKEL_BRANCH])
             print(
                 "Good luck, the first "
-                f"'\x1b[32mgit merge --allow-unrelated-histories {SKEL_BRANCH}\x1b0m' "
+                f"'\x1b[32mgit merge --allow-unrelated-histories {SKEL_BRANCH}\x1b[0m' "
                 "is typically full of conflicts."
             )
         else:
