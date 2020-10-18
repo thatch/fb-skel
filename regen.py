@@ -4,12 +4,11 @@
 # out.
 
 import configparser
-import os
 import re
 from pathlib import Path
 from typing import Match
 
-THIS_DIR = Path(os.path.abspath(__file__)).parent
+THIS_DIR = Path(__file__).absolute().parent
 TEMPLATE_DIR = THIS_DIR / "templates"
 
 # This is very simplistic...
@@ -34,6 +33,13 @@ def variable_format(tmpl: str, **kwargs: str) -> str:
     return VARIABLE_RE.sub(replace, tmpl)
 
 
+def is_template_file(filepath: Path) -> bool:
+    return (
+        filepath.suffix == 'in'
+        or filepath.name == '__init__.py'
+    )
+
+
 def main() -> None:
     # In case we've answered anything before, attempt load.
     parser = configparser.RawConfigParser()
@@ -41,33 +47,39 @@ def main() -> None:
     if "vars" not in parser:
         parser.add_section("vars")
 
-    for dirpath, dirnames, filenames in os.walk(TEMPLATE_DIR):
-        for fn in filenames:
-            if fn.endswith(".in"):
-                template_path = Path(dirpath) / fn
-                local_path = (Path(dirpath) / fn[:-3]).relative_to(TEMPLATE_DIR)
-                with template_path.open("r") as f:
-                    data = f.read()
-                variables = VARIABLE_RE.findall(data)
-                for v in variables:
-                    if v not in parser["vars"]:
-                        parser["vars"][v] = input(f"Value for {v}? ").strip()
-                        with open(VARS_FILENAME, "w") as f:
-                            parser.write(f)
+    for template_path in TEMPLATE_DIR.glob('**/*'):
+        dirpath = template_path.parent
 
-                interpolated_data = variable_format(data, **parser["vars"])
+        if is_template_file(template_path):
+            with template_path.open("r") as f:
+                data = f.read()
 
-                if local_path.exists():
-                    with local_path.open("r") as f:
-                        existing_data = f.read()
-                    if existing_data == interpolated_data:
-                        print(f"Unchanged {local_path}")
-                        continue
+            variables = list()
+            variables.extend(VARIABLE_RE.findall(data))
+            variables.extend(VARIABLE_RE.findall(str(template_path)))
 
-                print(f"Writing {local_path}")
-                local_path.parent.mkdir(parents=True, exist_ok=True)
-                with local_path.open("w") as f:
-                    f.write(interpolated_data)
+            for v in variables:
+                if v not in parser["vars"]:
+                    parser["vars"][v] = input(f"Value for {v}? ").strip()
+                    with open(VARS_FILENAME, "w") as f:
+                        parser.write(f)
+
+            interpolated_data = variable_format(data, **parser["vars"])
+
+            local_path = (dirpath / template_path.with_suffix('')).relative_to(TEMPLATE_DIR)
+            local_path = Path(variable_format(str(local_path), **parser["vars"]))
+
+            if local_path.exists():
+                with local_path.open("r") as f:
+                    existing_data = f.read()
+                if existing_data == interpolated_data:
+                    print(f"Unchanged {local_path}")
+                    continue
+
+            print(f"Writing {local_path}")
+            local_path.parent.mkdir(parents=True, exist_ok=True)
+            with local_path.open("w") as f:
+                f.write(interpolated_data)
 
 
 if __name__ == "__main__":
