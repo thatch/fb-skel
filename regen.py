@@ -33,13 +33,6 @@ def variable_format(tmpl: str, **kwargs: str) -> str:
     return VARIABLE_RE.sub(replace, tmpl)
 
 
-def is_template_file(filepath: Path) -> bool:
-    return (
-        filepath.suffix == 'in'
-        or filepath.name == '__init__.py'
-    )
-
-
 def main() -> None:
     # In case we've answered anything before, attempt load.
     parser = configparser.RawConfigParser()
@@ -48,13 +41,10 @@ def main() -> None:
         parser.add_section("vars")
 
     for template_path in TEMPLATE_DIR.glob('**/*'):
-        dirpath = template_path.parent
+        if template_path.suffix == '.in':
+            data = template_path.read_text()
 
-        if is_template_file(template_path):
-            with template_path.open("r") as f:
-                data = f.read()
-
-            variables = list()
+            variables = []
             variables.extend(VARIABLE_RE.findall(data))
             variables.extend(VARIABLE_RE.findall(str(template_path)))
 
@@ -66,20 +56,18 @@ def main() -> None:
 
             interpolated_data = variable_format(data, **parser["vars"])
 
-            local_path = (dirpath / template_path.with_suffix('')).relative_to(TEMPLATE_DIR)
+            local_path = template_path.with_suffix('').relative_to(TEMPLATE_DIR)
             local_path = Path(variable_format(str(local_path), **parser["vars"]))
 
             if local_path.exists():
-                with local_path.open("r") as f:
-                    existing_data = f.read()
+                existing_data = local_path.read_text()
                 if existing_data == interpolated_data:
                     print(f"Unchanged {local_path}")
                     continue
 
             print(f"Writing {local_path}")
             local_path.parent.mkdir(parents=True, exist_ok=True)
-            with local_path.open("w") as f:
-                f.write(interpolated_data)
+            local_path.write_text(interpolated_data)
 
 
 if __name__ == "__main__":
